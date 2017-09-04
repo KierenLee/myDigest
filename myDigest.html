@@ -1,0 +1,1744 @@
+<!--
+ * WebGL Digestion Simulator
+ * Name: myDigest
+ * Version: Orange 3.9
+ *
+ * Copyright 2017 Qilin Li
+ * Released under the UoB license
+ * GitHub: https://github.com/KierenLee
+ *-->
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <title>myDigest</title>
+        <meta charset="utf-8">
+        <style>
+            body {
+                /* set margin to 0 and overflow to hidden, to go fullscreen */
+                margin: 0;
+                overflow: hidden;
+            }
+            
+            h1#title {
+                /* set the style of the text( What did you eat...?) */
+                position: fixed;
+                left: 24px;
+                top: 46px;
+                font-family: Courier;
+                z-index: 12;
+                color: #000000;
+            }
+
+            #title .list {
+                /* set the style of the food list */
+                visibility: hidden;
+                min-width: 200px; 
+                max-width: 600px;
+                white-space: nowrap;
+                background-color: #000000;
+                color: #f0f0f4;
+                text-align: center;
+                font-family: Courier;
+                font-size: 20px;
+                border-radius: 6px;
+                padding: 5px 0;
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                margin-left: 46%;
+                margin-top: 3%;
+                opacity: 0;
+                transition: opacity 3s;
+            }
+
+            div#Messages {
+                /* set the style of the information of nutrient and progress */
+                background-color: #99CCFF;
+                color: #000000;
+                opacity: .95;
+                visibility: hidden;
+                border-radius: 9px;
+                width: 400px;
+                height: 540px;
+                position: absolute;
+                left: 45px;
+                top: 108px;
+                z-index: 1;
+                font-family: Courier;
+                text-align: center;
+                font-size: .8em;
+                padding: 10px 20px;
+            }
+
+            div#tips {
+                /* set the style of text( final results and advice) */
+            	background-color: #99CCFF;
+            	border-radius: 15px;
+            	width: 25%;
+                height: 230px;
+            	position: absolute;
+                left: 34%;
+                top: 108px;
+                z-index: 3;
+                padding: 10px 10px;
+                font-size: 18px;
+                font-family: "Times New Roman", Times, serif;
+                visibility: hidden;
+                border:#c0ebd7 solid thick;
+            }
+
+            div#tips span {
+                font-family: Courier;
+            }
+
+            div.canvas-holder1 {
+                /* set the position of doughnut chart1 */
+                width: 155px;
+                position: fixed;
+                left: 73px;
+                top: 480px;
+                z-index: 4;
+            }
+
+            div.canvas-holder2 {
+                /* set the position of doughnut chart2 */
+                width: 155px;
+                position: fixed;
+                left: 290px;
+                top: 480px;
+                z-index: 4;
+            }
+
+            span.subtitle {
+                /* set the style of font in the results */
+                position: absolute;
+                left: 33%;
+                z-index: 5;
+                font-size: 16px;
+                white-space: nowrap;
+                color: #f00056;
+
+            }
+
+            span.advice {
+                position: absolute;
+                top: 0;
+                right: 0;
+                font-size: 11px;
+                font-family: "Times New Roman", Times, serif;
+                padding-top: 5px;
+                padding-right: 15px;
+                color: #f00056;
+            }
+
+            div#tips span.quit {
+                /* set the style of text (tip) in the results */
+                font-size: 12px;
+                color: #f00056;
+                position: absolute;
+                left: 8px;
+                bottom: 5px;
+
+            }
+
+            [name^="water"] {
+                color: #0099CC;
+            }
+
+            [name^="protein"] {
+                color: #996633;
+            }
+
+            [name^="fat"] {
+                color: #666699;
+            }
+
+            [name^="carbs"] {
+                color: #CC6633;
+            }
+
+            [name^="calories"] {
+                color: #FF6666;
+            }
+
+        </style>
+    </head>
+    <body>
+        <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+
+        <script src="libs/three.js"></script>
+        <script src="libs/three.min.js"></script>
+        <script src="libs/stats.js"></script>
+        <script src="libs/dat.gui.js"></script>
+        <script src="libs/OrbitControls.js"></script>
+        <script src="three.js/examples/js/DDSLoader.js"></script>
+        <script src="three.js/examples/js/MTLLoader.js"></script>
+        <script src="three.js/examples/js/OBJLoader.js"></script>
+        <script src="three.js/examples/js/Detector.js"></script>
+        
+        <script src="foodLib.js"></script>
+        <script src="functionLib.js"></script>
+        <script src="libs/Chart.js"></script>
+
+
+
+        <div id="Stats-output">
+        </div>
+        <!-- Div which will hold the Output -->
+        
+        <h1 id = "title" onclick="clicked()"> What did you eat...? 
+            <span class="list">
+                <span>...</span><br>
+            </span>
+        </h1>
+
+        <div id = "Messages">
+            <span>...</span><br>
+        </div>
+
+        <div class="canvas-holder1">
+            <canvas id="canvas-area1" width="220" height="220"></canvas><br>
+            <span id="name1" class = "subtitle"></span>
+        </div>
+        
+        <div class="canvas-holder2">
+            <canvas id="canvas-area2" width="220" height="220"></canvas><br>
+            <span id="name2" class = "subtitle"></span>
+        </div>
+
+        <div id = "tips">
+            <p> </p>
+			<span class="report" id="1" name = "water"></span><br><br>
+			<span class="report" id="2" name = "protein"></span><br><br>
+			<span class="report" id="3" name = "fat"></span><br><br>
+			<span class="report" id="4" name = "carbs"></span><br><br>
+			<span class="report" id="5" name = "calories"></span><br>
+            <span class="advice">Show more detailed advice</span><br>
+            <span class="quit">Close</span>
+            
+            
+        </div>
+
+        <div id="WebGL-output">
+        </div>
+
+        <!-- Javascript code that runs this Three.js project -->
+        <script type="text/javascript">
+            // initialize the variable used to modify the DOM nodes
+            var nutrientMessage = $("div#Messages");
+            var foodMessage = $("span.list");
+            var results = $('div#tips');
+            var holder1 = $('div.canvas-holder1');
+            var holder2 = $('div.canvas-holder2');
+            $(document).ready(function(){
+                $("h1#title").hover(function(){
+                    ifShowHint(true);
+                },function(){
+                    ifShowHint(false);
+                });
+            });
+
+            // used in building Three.js scene
+            var camera;
+            var scene;
+            var renderer;
+            var ground;
+            // used to get a new Three.js clock to realize dynamic effect
+            var clock = new THREE.Clock();
+
+            //
+            var object01,object02,object03,object04,object05;
+            var objs = new Array();
+            var objects = new Array();
+            var objectsScale = new Map();
+            var unitChoose = true;
+            //var unit = new Map();
+            var geometrys = [new THREE.BoxGeometry(4, 4, 4),new THREE.BoxGeometry(2, 4, 2),new THREE.BoxGeometry(8, 4, 8),new THREE.BoxGeometry(4, 4, 4),new THREE.BoxGeometry(6, 4, 6)];
+            var materials = [new THREE.MeshPhongMaterial({color: 0xe2e2e2}),new THREE.MeshPhongMaterial({color: 0xe2e2e2}),new THREE.MeshPhongMaterial({color: 0xe2e2e2}),new THREE.MeshPhongMaterial({color: 0xe2e2e2}),new THREE.MeshPhongMaterial({color: 0xe2e2e2})];
+
+            var colors = [new THREE.Color(0xffffff),new THREE.Color(0xffffff),new THREE.Color(0xffffff),new THREE.Color(0xffffff),new THREE.Color(0xffffff)];
+            var color = new THREE.Color(0xFF9999);
+            var distance = 1;
+            // set the defualt digestion time and digestion speed
+            var unitTime = 1000;
+            var speed = 1;
+            var data = {
+                "time1": 0,
+                "time2": 3,
+                "time3": 0,
+                "time4": 3.5*60*60,
+                "time5": 60*60
+            };
+            // used to control the start and end of the system
+            var isLock = false;
+            var isOpen = false;
+            var isQuit = false;
+            var ifChangeView = false;
+            var ifrotate = true;
+            var ifShow = false;
+            var hasRotated = false;
+            var hasDia = false;
+
+            // these 5 variables are used in process() function 
+            var timer;
+            var threshold = data.time1;
+            var r;
+            var processState;
+            var processRatio = 0;
+
+            // mode is used in dynamicEffect function to pick various part 
+            var mode = 0;
+            // count() is defined in the functionLib.js
+            var count = count();
+         
+            //
+            var fruitList = Fruit;
+            var vegeList = Vegetable;
+            var starchList = Starch;
+            var animalList = AnimalProtein;
+            var seafoodList = Seafood;
+            var dairyList = Dairy;
+            var grainList = Grain;
+            var beanList = Bean;
+            var nutList = Nut;
+
+            var Aim = 'Maintenance';
+            var standardRatio = getStandardRatio(Aim);
+            var searchAim = new Map();
+            var searchWeight = new Map();
+            var searchName = new Array();
+            var addAim = new Map([['fruit',{}],['vegetable',{}],['starch',{}],['animalProtein',{}],['seafood',{}],['dairy',{}],['grain',{}],['bean',{}],['nut',{}],['bread',{}],['nut',{}],['fruitW',100],['vegetableW',100],['starchW',100],['animalProteinW',100],['seafoodW',100],['dairyW',100],['grainW',100],['beanW',100],['nutW',100],['breadW',100]]);
+            var wholeNut = new Map([['Water',0],['Protein',0],['Fat',0],['Carbs',0],['Calories',0],['gotProtein',0]]);
+
+            var diyNutrient = ['Default type',0,0,0,0,0,1,'g'];
+            var diyName = 'DIY';
+            var diyProperty = 'Solid';
+            var diyWeight = 0;
+
+            var diy = {
+                Name: 'DIY',
+                property: "Solid",
+                Protein_Required: 0,
+                Fat_Required: 0,
+                Carbohydrates_Required: 0,
+                Water_Optional: 0,
+                Energy_Optional: 0,
+                Total_Weight_Optional: 0,
+
+                Make: function () {
+                    if(!isLock){
+                        if(diyNutrient[4]==0){
+                            var tempEnergy = calEnergyPro([diyNutrient[1],diyNutrient[2],diyNutrient[3]],"all");
+                            console.log(tempEnergy);
+                            diyNutrient[4] = tempEnergy[0] + tempEnergy[1] + tempEnergy[2];
+                        }
+                        if(diyWeight==0)
+                            diyWeight = diyNutrient[1]+diyNutrient[2]+diyNutrient[3]+diyNutrient[5];
+                        addAim.set(diyName,getFood(diyName,[60],makeNutrientObj(diyNutrient),diyProperty));
+                        addAim.set(diyName+'W',diyWeight);
+                        searchAim.set(diyName,getFood(diyName,[60],makeNutrientObj(diyNutrient),diyProperty));
+                        updateMessage(false,addAim.get(diyName).name,diyName+'W');
+                        searchWeight.set(diyName,100);
+                    }
+                    setTimeout(function(){
+                        ifShowHint(false);
+                    },3000);
+                    ifShowHint(true);
+                }
+            }
+            // when the webpage is loaded already, init() is called
+            window.onload = init;
+            // loadData() is defined in the functionLib.js, used to load all food into the library
+            loadData();
+            // listen to the resize events
+            window.addEventListener('resize', onResize, false);
+            // set the whole system
+            function init() {
+
+                //define many of variables
+                var stats = initStats();
+                nutrientMessage.hide(0);
+                nutrientMessage.css('visibility','visible');
+                results.hide(0);
+                results.css('visibility','visible');
+
+                //create a new scene and perspective camera 
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
+                camera.position.set( 310, 2679.4, 6596.9);
+                camera.lookAt(new THREE.Vector3( 0, 40, 0 ));
+
+                var geometry = new THREE.PlaneBufferGeometry( 270, 207 );
+                var material = new THREE.MeshPhongMaterial( { shininess: 0.9, color: 0x6666ff} );
+                ground = new THREE.Mesh( geometry, material );
+                ground.position.set( 0, -30, -15 );
+                ground.rotation.x = - Math.PI /2;
+                scene.add( ground );
+                //scene.fog = new THREE.Fog( 0xffffff, 3000, 15000 );
+
+                THREE.Loader.Handlers.add( /\.dds$/i, new THREE.DDSLoader() );
+                var mtlLoader = new THREE.MTLLoader();
+                mtlLoader.setPath('models/New Models/Box/');
+                mtlLoader.load('box.mtl', function( materials ){
+                    materials.preload();
+                    var objLoader = new THREE.OBJLoader();
+                    objLoader.setMaterials(materials);
+                    objLoader.setPath('models/New Models/Box/');
+                    objLoader.load('box.obj', function(obj){
+                        obj.scale.set(100,100,100);
+                        scene.add(obj);
+                        //objects[0] = obj;
+                        animate();
+                    });
+                });
+
+                // add spotlight for the shadows
+                var spotLight = new THREE.PointLight(0xffffff);
+                spotLight.position.set( -10,10,-40 );
+                scene.add(spotLight);
+
+                var backLight = new THREE.DirectionalLight( 0x7799b6 );
+                backLight.position.set( -439,312,-503.9 );
+                backLight.rotation.set(-148.2,-36.5,98.4);
+                backLight.intensity=.75;
+                scene.add(backLight);
+
+                var fillLight = new THREE.DirectionalLight( 0xe5d4b4 );
+                fillLight.position.set( 1100,895,0 );
+                fillLight.rotation.set(-90,50.9,-50.9);
+                fillLight.intensity=.85;
+                scene.add(fillLight);
+
+                var keyLight = new THREE.DirectionalLight( 0xfffbf4 );
+                keyLight.position.set( -390,491,390 );
+                keyLight.rotation.set(-51.6,-31.9,15.7);
+                keyLight.intensity=1;
+                scene.add(keyLight);
+
+                loadModel();
+
+                // create a render and set the size
+                renderer = new THREE.WebGLRenderer( { antialias: true } );
+                renderer.setClearColor( 0xE8EDF3 );
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio( window.devicePixelRatio );
+                renderer.shadowMapEnabled = false;
+
+                // add the output of the renderer to the html element
+                document.getElementById("WebGL-output").appendChild(renderer.domElement);
+                
+                var controls = new function () {
+                    this.Aim =  "Maintenance";
+                    this.Unit = "Weight(g)";
+
+                    this.Add = function(){
+                        if(!isLock){
+                            if(addAim.get('fruit').name != undefined){
+                                searchAim.set(addAim.get('fruit').name,addAim.get('fruit'));
+                                updateMessage(false,addAim.get('fruit').name,'fruitW');
+                            }
+                            if(addAim.get('vegetable').name != undefined){
+                                searchAim.set(addAim.get('vegetable').name,addAim.get('vegetable'));
+                                updateMessage(false,addAim.get('vegetable').name,'vegetableW');
+                            }
+                            if(addAim.get('starch').name != undefined){
+                                searchAim.set(addAim.get('starch').name,addAim.get('starch'));
+                                updateMessage(false,addAim.get('starch').name,'starchW');
+                            }
+                            if(addAim.get('animalProtein').name != undefined){
+                                searchAim.set(addAim.get('animalProtein').name,addAim.get('animalProtein'));
+                                updateMessage(false,addAim.get('animalProtein').name,'animalProteinW')
+                            }
+                            if(addAim.get('seafood').name != undefined){
+                                searchAim.set(addAim.get('seafood').name,addAim.get('seafood'));
+                                updateMessage(false,addAim.get('seafood').name,'seafoodW')
+                            }
+                            if(addAim.get('dairy').name != undefined){
+                                searchAim.set(addAim.get('dairy').name,addAim.get('dairy'));
+                                updateMessage(false,addAim.get('dairy').name,'dairyW')
+                            }
+                            if(addAim.get('grain').name != undefined){
+                                searchAim.set(addAim.get('grain').name,addAim.get('grain'));
+                                updateMessage(false,addAim.get('grain').name,'grainW')
+                            }
+                            if(addAim.get('bean').name != undefined){
+                                searchAim.set(addAim.get('bean').name,addAim.get('bean'));
+                                updateMessage(false,addAim.get('bean').name,'beanW')
+                            }
+                            if(addAim.get('nut').name != undefined){
+                                searchAim.set(addAim.get('nut').name,addAim.get('nut'));
+                                updateMessage(false,addAim.get('nut').name,'nutW')
+                            }
+                            if(addAim.get('bread').name != undefined){
+                                searchAim.set(addAim.get('bread').name,addAim.get('bread'));
+                                updateMessage(false,addAim.get('bread').name,'breadW')
+                            }
+                        }
+                        setTimeout(function(){
+                            ifShowHint(false);
+                        },3000);
+                        ifShowHint(true);
+
+                    };
+                    this.Start = function(){
+                        if(!isLock&&searchAim.size)
+                            isOpen = true;
+                        console.log(searchAim);
+                    };
+                    this.Clean = function(){
+                        if(!isLock)
+                            cleanData();
+                        
+                    };
+                    this.Quit = function(){
+                        if(confirm('Do you want to stop this process?')){
+                            isQuit = true;
+                            isLock = false;
+                        }
+                    };
+
+                    this.Rotate_the_View = function(){
+                        if(ifrotate)
+                            hasRotated = !hasRotated;
+                    };
+                    this.Multiple_of_Distance = 1;
+                    this.Fruits = "None";
+                    this.Fruit_Number = 100;
+                    this.Vegetables = "None";
+                    this.Vegetable_Number = 100;
+                    this.Starch_based = "None";
+                    this.Starch_Number = 100;
+                    this.Animal_protein = "None";
+                    this.Protein_Number = 100;
+                    this.Seafoods = "None";
+                    this.Seafood_Number = 100;
+                    this.Dairy = "None";
+                    this.Dairy_Number = 100;
+                    this.Grains = "None";
+                    this.Grain_Number = 100;
+                    this.Beans = "None";
+                    this.Bean_Number = 100;
+                    this.Nuts = "None";
+                    this.Nut_Number = 100;
+
+
+                    this.Make = function(){
+                        if(!isLock){
+                            if(diyNutrient[4]==0){
+                                var tempEnergy = calEnergyPro([diyNutrient[1],diyNutrient[2],diyNutrient[3]],"all");
+                                console.log(tempEnergy);
+                                diyNutrient[4] = tempEnergy[0] + tempEnergy[1] + tempEnergy[2];
+                            }
+                            if(diyWeight==0)
+                                diyWeight = diyNutrient[1]+diyNutrient[2]+diyNutrient[3]+diyNutrient[5];
+                            addAim.set(diyName,getFood(diyName,[60],makeNutrientObj(diyNutrient),diyProperty));
+                            addAim.set(diyName+'W',diyWeight);
+                            searchAim.set(diyName,getFood(diyName,[60],makeNutrientObj(diyNutrient),diyProperty));
+                            updateMessage(false,addAim.get(diyName).name,diyName+'W');
+                            searchWeight.set(diyName,100);
+                        }
+                        setTimeout(function(){
+                            ifShowHint(false);
+                        },3000);
+                        ifShowHint(true);
+                    };
+                    this.Name = "DIY";
+                    this.Protein_Required = 0;
+                    this.Fat_Required = 0;
+                    this.Carbohydrates_Required = 0;
+                    this.Water_Optional = 0;
+                    this.Energy_Optional = 0;
+                    this.property = "Solid";
+                    this.Total_Weight = 0;
+                    this.Total_Weight_Optional = 0;
+                };
+
+                var gui = new dat.GUI();
+
+                gui.remember(diy);
+                var DIYFolder = gui.addFolder("DIY Food");
+                var foodFolder = gui.addFolder("Food");
+                
+                DIYFolder.add(diy,'Make');
+                DIYFolder.add(diy,'Name').onChange(function(e){
+                    diyName = e;
+                });
+                DIYFolder.add(diy,'property',["Solid","Liquid"]).onChange(function(e){
+                    diyProperty = e;
+                });
+
+                DIYFolder.add(diy,'Protein_Required').step(.1).onChange(function(e){
+                    diyNutrient[1] = e;
+                });
+                DIYFolder.add(diy,'Fat_Required').step(.1).onChange(function(e){
+                    diyNutrient[2] = e;
+                });
+                DIYFolder.add(diy,'Carbohydrates_Required').step(.1).onChange(function(e){
+                    diyNutrient[3] = e;
+                });
+                DIYFolder.add(diy,'Water_Optional').step(.1).onChange(function(e){
+                    diyNutrient[5] = e;
+                });
+                DIYFolder.add(diy,'Energy_Optional').step(.1).onChange(function(e){
+                    diyNutrient[4] = e;
+                });
+                DIYFolder.add(diy,'Total_Weight_Optional').step(.01).onChange(function(e){
+                    diyWeight = e;
+                });
+
+                gui.add(controls,'Start');
+                gui.add(controls,'Clean');
+                gui.add(controls,'Quit');
+                gui.add(controls,'Aim',["Bodybuilding","Maintenance","Fat Loss"]).onChange(function(e){
+                    Aim = e;
+                    standardRatio = getStandardRatio(e);
+
+                });
+
+                var rotationFolder = gui.addFolder("Rotate_the_View");
+                rotationFolder.add(controls,'Rotate_the_View');
+                rotationFolder.add(controls,'Multiple_of_Distance',.1,2).step(.01).onChange(function(e){
+                    distance = e;
+                });
+                
+                foodFolder.add(controls,'Add');
+                foodFolder.add(controls,'Unit',["Weight(g)","Quantity(Quantity or cup)"]).onChange(function(e){
+                    switch(e){
+                        case "Weight(g)":
+                        unitChoose = true;
+                        console.log(e);
+                        break;
+                        case "Quantity(Quantity or cup)":
+                        unitChoose = false;
+                        console.log(e);
+                        break;
+                    
+                    }
+                });
+                foodFolder.add(controls,'Fruits', fruitList).onChange(function(e){
+                    if(e != 'None'){
+                        addAim.set('fruit',lib.searchFood(e));
+                    }else
+                        addAim.set('fruit',{});
+                    console.log(addAim);
+                });
+                foodFolder.add(controls,'Fruit_Number', 0, 800).step(.1).onChange(function(e){
+                    addAim.set('fruitW',e);
+                });
+                foodFolder.add(controls,'Vegetables', vegeList).onChange(function(e){
+                    if(e != 'None')
+                        addAim.set('vegetable',lib.searchFood(e));
+                    else
+                        addAim.set('vegetable',{});
+                    console.log(addAim);
+                });
+                foodFolder.add(controls,'Vegetable_Number', 0, 800).step(.1).onChange(function(e){
+                    addAim.set('vegetableW',e);
+                });
+                foodFolder.add(controls,'Starch_based',starchList).onChange(function(e){
+                    if(e != 'None')
+                        addAim.set('starch',lib.searchFood(e));
+                    else
+                        addAim.set('starch',{});
+                    console.log(addAim);
+                });
+                foodFolder.add(controls,'Starch_Number', 0, 800).step(.1).onChange(function(e){
+                    addAim.set('starchW',e);
+                });
+
+                foodFolder.add(controls,'Animal_protein',animalList).onChange(function(e){
+                	if(e != 'None')
+                		addAim.set('animalProtein',lib.searchFood(e));
+                	else
+                		addAim.set('animalProtein',{});
+                	console.log(addAim);
+                });
+                foodFolder.add(controls,'Protein_Number',0,800).step(.1).onChange(function(e){
+                	addAim.set('animalProteinW',e);
+                });
+
+                foodFolder.add(controls,'Seafoods',seafoodList).onChange(function(e){
+                	if(e != 'None')
+                		addAim.set('seafood',lib.searchFood(e));
+                	else
+                		addAim.set('seafood',{});
+                	console.log(addAim);
+                });
+                foodFolder.add(controls,'Seafood_Number',0,800).step(.1).onChange(function(e){
+                	addAim.set('seafoodW',e);
+                });
+
+                foodFolder.add(controls,'Dairy',dairyList).onChange(function(e){
+                	if(e != 'None')
+                		addAim.set('dairy',lib.searchFood(e));
+                	else
+                		addAim.set('dairy',{});
+                	console.log(addAim);
+                });
+                foodFolder.add(controls,'Dairy_Number',0,800).step(.1).onChange(function(e){
+                	addAim.set('dairyW',e);
+                });
+
+                foodFolder.add(controls,'Grains',grainList).onChange(function(e){
+                	if(e != 'None')
+                		addAim.set('grain',lib.searchFood(e));
+                	else
+                		addAim.set('grain',{});
+                	console.log(addAim);
+                });
+                foodFolder.add(controls,'Grain_Number',0,800).step(.1).onChange(function(e){
+                	addAim.set('grainW',e);
+                });
+
+                foodFolder.add(controls,'Beans',beanList).onChange(function(e){
+                	if(e != 'None')
+                		addAim.set('bean',lib.searchFood(e));
+                	else
+                		addAim.set('bean',{});
+                	console.log(addAim);
+                });
+                foodFolder.add(controls,'Bean_Number',0,800).step(.1).onChange(function(e){
+                	addAim.set('beanW',e);
+                });
+
+                foodFolder.add(controls,'Nuts',nutList).onChange(function(e){
+                	if(e != 'None')
+                		addAim.set('nut',lib.searchFood(e));
+                	else
+                		addAim.set('nut',{});
+                	console.log(addAim);
+                });
+                foodFolder.add(controls,'Nut_Number',0,800).step(.1).onChange(function(e){
+                	addAim.set('nutW',e);
+                });
+
+                // Controls
+                var control = new THREE.OrbitControls( camera, renderer.domElement );
+                control.target.set(0,1,0);
+                control.update();
+
+                clock.start();
+                
+
+                function animate() {
+                    // render using requestAnimationFrame
+                    requestAnimationFrame(animate);
+                    render();
+                }
+                
+                function render(){
+                    var time = clock.getElapsedTime();
+                    //var radius = Math.round(Math.sqrt(Math.pow(camera.position.x,2)+Math.pow(camera.position.z,2)));
+                                     
+                    if(ifShow){
+                        showResults();
+                        results.find('span.quit').click(function(){
+                            showResults('clean');
+                        });
+
+                        ifShow = false;
+                    }
+
+                    if(isOpen&&!isLock){
+                        isOpen = false;
+                        isLock = true;
+                        ifChangeView = true;
+
+                        wholeNut = new Map([['Water',0],['Protein',0],['Fat',0],['Carbs',0],['Calories',0],['gotProtein',0]]);
+
+                        timer = 0;
+                        processState = 1;
+                        mode = 1
+                        updateData();
+                        threshold = data.time1;
+                        updateNutrient();
+                        process();
+                    }
+                    dynamicEffect(true,time,1,objects);   
+
+                    if(isQuit){
+                        clearTimeout(r);
+                        colorEffect(0,objects);
+                        mode = 0;
+                        processState = 1;
+                        isQuit = false;
+                        cleanData();
+                    }
+
+                    if(hasRotated){
+                        
+                        rotateView(camera,time);
+                    }
+
+                    toStartView(ifChangeView);
+                    stats.update();
+                    renderer.render(scene, camera); 
+                }
+
+                function initStats() {
+
+                    var stats = new Stats();
+
+                    stats.setMode(0); // 0: fps, 1: ms
+
+                    // Align top-left
+                    stats.domElement.style.position = 'absolute';
+                    stats.domElement.style.left = '0px';
+                    stats.domElement.style.top = '0px';
+
+                    document.getElementById("Stats-output").appendChild(stats.domElement);
+
+                    return stats;
+                }       
+            }
+
+            function onResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            function loadModel(){
+                var manager = new THREE.LoadingManager();
+                var texture = new THREE.Texture();
+                var loader = new THREE.ImageLoader(manager);
+                loader.load('models/New Models/Anatomy - Human Stomach/OBJ---ANATOMY---HUMAN-STOMACH/ANATOMY---HUMAN-STOMACH_ANATOMY---HUMAN-STOMACH_BaseColor.jpg', function( image ){
+                    texture.image = image;
+                    texture.needsUpdate = true;
+                });
+                var objLoader = new THREE.OBJLoader(manager);
+                objLoader.load('models/New Models/Anatomy - Human Stomach/OBJ---ANATOMY---HUMAN-STOMACH/ANATOMY---HUMAN-STOMACH.obj',function(obj){
+                    obj.traverse(function(child){
+                       if ( child instanceof THREE.Mesh ) {
+                           child.material.map = texture;
+                        }
+                    });
+                    obj.position.set(-2.074,48.0485,-12.6835);
+                    obj.scale.set(5,5,5);
+                    objectsScale.set('2',[5,5,5]);
+                    objects[2] = obj;
+                    scene.add(obj);
+                    
+                });
+                objLoader.load('models/New Models/Anatomy - Human Intestine/OBJ---ANATOMY---HUMAN-INTESTINE/ANATOMY---HUMAN-INTESTINE.obj',function(obj){
+                    obj.traverse(function(child){
+                        if ( child instanceof THREE.Mesh ) {
+                            child.material.map = texture;
+                        }
+                    });
+                    obj.scale.set(5,5,5);
+                    objectsScale.set('3',[5,5,5]);
+                    objects[3] = obj;
+                    scene.add(obj);
+                    
+                });
+                objLoader.load('models/New Models/other/esophagus.obj',function(obj){
+                    obj.traverse(function(child){
+                        if ( child instanceof THREE.Mesh ) {
+                            child.material.map = texture;
+                        }
+                    });
+                    objects[1] = obj;
+                    obj.scale.set(100,40,100);
+                    objectsScale.set('1',[100,40,100]);
+                    obj.position.set(2.726,130,-24);
+                    scene.add(obj);
+                    
+                });
+                objLoader.load('models/New Models/other/mouth.obj',function(obj){
+                    obj.traverse(function(child){
+                        if ( child instanceof THREE.Mesh ) {
+                            child.material.map = texture;
+                        }
+                    });
+                    objects[0] = obj;
+                    obj.scale.set(10,10,10);
+                    objectsScale.set('0',[10,10,10]);
+                    obj.position.set(2.726,156,-24);
+                    scene.add(obj);
+                    
+                });
+                objLoader.load('models/New Models/other/teeth.obj',function(obj){
+
+                    //objects[4] = obj;
+                    obj.scale.set(100,100,100);
+                    //objectsScale.set('4',[100,100,100]);
+                    obj.position.set(2.726,156,-24.8);
+                    scene.add(obj);
+                    
+                });
+                objLoader.load('models/New Models/other/teeth.obj',function(obj){
+
+                    //objects[5] = obj;
+                    obj.scale.set(100,100,100);
+                    //objectsScale.set('5',[100,100,100]);
+                    obj.position.set(2.726,154,-25);
+                    scene.add(obj);
+                    
+                });
+            }
+
+            function toStartView(flag){
+                if(flag&&(camera.position.length()>600)){
+                    ifrotate = false;
+                    var newView = changeView('near',camera.position,getStep('near',camera.position,25));
+                    camera.position.set(newView[0],newView[1],newView[2]);
+                    camera.lookAt(new THREE.Vector3( 0, 40, 0 ));
+                    
+                    if(camera.position.length()<=600){
+                        ifChangeView = false;
+                        ifrotate = true;
+                    }
+                }
+            }
+
+            function rotateView(camera,time){
+                var radius = 300;
+                camera.position.x = distance*radius*Math.sin(time/2);
+                camera.position.z = distance*radius*Math.cos(time/2);
+                camera.lookAt(new THREE.Vector3( 0, camera.position.y-130, 0 ));
+            }
+
+            /*
+            *   Function Name: process()
+            *   Description:
+            *   According to different process state (1~5), this function carry out different process in the corresponding state. Actually, it is a segmented timer that can perform 5 different times in second. The unit of time equals to unitTime*speed. And it shows the ratio of the part that has finished in each state (processRatio).
+            */
+            function process(){
+                processRatio = (100*timer)/(threshold);
+                processRatio = Math.round(processRatio*100)/100;
+                console.log(processRatio);
+                showRatio(processRatio);
+                updateIntake();
+                timer++;
+                if(timer<=threshold&&!isQuit){
+                    colorEffect(processState,objects);
+                    r = setTimeout(function(){
+                        process();
+                    },unitTime*speed);
+                }else if(timer>threshold){
+                    timer = 0;
+                    switch(processState){
+                        case 1:
+                            threshold = data.time2;
+                            mode = 2;
+                            processState++;
+                            process();
+                            break;
+                        case 2:
+                            threshold = data.time3;
+                            mode = 3;
+                            processState++;
+                            process();
+                            break;
+                        case 3:
+                            threshold = data.time4;
+                            mode = 4;
+                            processState++;
+                            process();
+                            break;
+                        case 4:
+                            threshold = data.time5;
+                            mode = 5;
+                            processState++;
+                            process();
+                            break;
+                        case 5:
+
+                            break;
+                        default:
+                            colorEffect(0,objects);
+                            mode = 0;
+                            isLock = false;
+                            processState = 1;
+                            cleanData();
+                            showResults();
+                            results.find('span.quit').click(function(){
+                                showResults('clean');
+                            });
+                    }
+                    
+                }else
+                    isLock = false;
+            }
+            /*
+            *   Function Name: colorEffect( objNum )
+            *   Description: 
+            *   This function cleans the colour of all objects and sets the colour of the object (objNum).
+            */
+            function colorEffect(objNum,objs){
+                switch(objNum){
+                    case 1:
+                        for(var o in objs)
+                            objs[o].children[0].material.color.set(colors[o]);
+                        objs[0].children[0].material.color.set(color);
+                        break;
+                    case 2:
+                        for(var o in objs)
+                            objs[o].children[0].material.color.set(colors[o]);
+                        objs[1].children[0].material.color.set(color);
+                        break;
+                    case 3:
+                        for(var o in objs)
+                            objs[o].children[0].material.color.set(colors[o]);
+                        objs[2].children[0].material.color.set(color);
+                        break;
+                    case 4:
+                        for(var o in objs)
+                            objs[o].children[0].material.color.set(colors[o]);
+                        objs[3].children[0].material.color.set(color);
+                        break;
+                    default: 
+                        for(var o in objs)
+                            objs[o].children[0].material.color.set(colors[o]);
+                }
+
+            }
+
+            function clearAllScaleExcept(num,objs,scale){
+                for(var i in objs){
+                    if(num!=parseInt(i))
+                        objs[parseInt(i)].scale.set(scale.get(i)[0],scale.get(i)[1],scale.get(i)[2]);
+                }
+
+            }
+
+            function dynamicEffect(flag,time,modelSetNumber,objs){
+                var rate = 0.1;
+                if(flag){
+                    switch(modelSetNumber){
+                        case 1:
+                            switch(mode){
+                                case 1:
+                                    clearAllScaleExcept(0,objs,objectsScale);
+                                    objs[0].scale.set(1*Math.sin(time/rate)+10,1*Math.sin(time/rate)+10,10);
+
+                                break;
+                                case 2:
+                                    clearAllScaleExcept(1,objs,objectsScale);
+                                    objs[1].scale.set(8*Math.sin(time/(rate*2))+100,40,8*Math.sin(time/rate)+100);
+                                break;
+                                case 3:
+                                    clearAllScaleExcept(2,objs,objectsScale);
+                                    objs[2].scale.set(.2*Math.sin(time/rate)+5,5,.2*Math.sin(time/rate)+5);
+                                break;
+                                case 4:
+                                    clearAllScaleExcept(3,objs,objectsScale);
+                                    objs[3].scale.set(.2*Math.sin(time/rate)+5,5,.2*Math.sin(time/rate)+5);
+                                break;
+                                case 5:
+                                    clearAllScaleExcept(3,objs,objectsScale);
+                                    objs[3].scale.set(.2*Math.sin(time/rate)+5,5,.2*Math.sin(time/rate)+5);
+                                break;
+                                default: 
+                                    clearAllScaleExcept(4,objs,objectsScale);
+                            };
+                        break;
+                        case 2:
+                            switch(mode){
+                            case 1: 
+                                //clearAllScaleExcept(0);
+                                objs[0].scale.set(.3*Math.sin(time/rate)+1.5,1,.3*Math.sin(time/rate)+1.5);
+                            break;
+                            case 2: 
+                                //clearAllScaleExcept(1);
+                                objs[1].scale.set(.3*Math.sin(time/rate)+1.5,1,.3*Math.sin(time/rate)+1.5);
+                            break;
+                            case 3: 
+                                //clearAllScaleExcept(2);
+                                objs[2].scale.set(.3*Math.sin(time/rate)+1.5,1,.3*Math.sin(time/rate)+1.5);
+                            break;
+                            case 4: 
+                                //clearAllScaleExcept(3);
+                                objs[3].scale.set(.3*Math.sin(time/rate)+1.5,1,.3*Math.sin(time/rate)+1.5);
+                            break;
+                            case 5: 
+                                //clearAllScaleExcept(4);
+                                objs[4].scale.set(.3*Math.sin(time/rate)+1.5,1,.3*Math.sin(time/rate)+1.5);
+                            break;
+                            default: 
+                                //clearAllScaleExcept(5);
+                            };
+                    }
+                    
+                }
+            }
+
+            function updateData(){
+                for(var obj of searchAim){
+                    //console.warn(o);
+                    console.log(obj[1].name);
+                    if(obj[1].property == 'Liquid')
+                        data.time1 = data.time1+1;
+                    else
+                        data.time1 = data.time1+4;
+                    data.time3 = data.time3 + obj[1].time[0]*60;
+                }
+
+            }
+
+            function cleanData(){
+                updateMessage(true);
+                showNutrient(true);
+                count('clean');
+
+                searchAim = new Map();
+
+                data = {
+                    "time1": 0,
+                    "time2": 3,
+                    "time3": 0,
+                    "time4": 120*60,
+                    "time5": 60*60
+                };
+            }
+
+            function clicked(){
+                nutrientMessage.fadeToggle('fast');
+                hasDia = !hasDia;
+                if(hasDia)
+                    editDiagram('show');
+                else
+                    editDiagram('clean');
+            };
+
+            function updateMessage(ifClean,m,w){
+                if(ifClean){
+                    foodMessage.children().remove();
+                    showFood('...');
+
+                    searchWeight = new Map();
+                    searchName.length = 0;
+                }else{
+                    var a = searchAim.get(m).nutrient.quantity;
+                    var b = searchAim.get(m).nutrient.tip;                    
+                    if($(foodMessage.children().get(0)).text()=='...')
+                        foodMessage.children().remove();
+
+                    if(searchWeight.has(m)){
+                        if(unitChoose){
+                            var newValue = searchWeight.get(m)+addAim.get(w);
+
+                        }else{
+                            var newValue = searchWeight.get(m)+addAim.get(w)*a;
+                            
+                        }
+                        searchWeight.set(m,newValue);
+                            for(var n = 0; n<foodMessage.children().length ; n=n+2)
+                                if($(foodMessage.children().get(n)).text().indexOf(m)!=-1)
+                                    $(foodMessage.children().get(n)).html('&nbsp;'+m+' - '+newValue+'g&nbsp;');
+                    }
+                    else{
+                        if(unitChoose){
+                            searchWeight.set(m,addAim.get(w));
+                            searchName.push(m);
+                            showFood(m,w);
+                        }else{
+                            searchWeight.set(m,addAim.get(w)*a);
+                            searchName.push(m);
+                            showFood(m,w,a);
+                        }
+                        
+                    }
+                }
+                console.log(searchWeight);
+            }
+
+            function showFood(m,w,u){
+                if(arguments.length == 1)
+                    foodMessage.append(function () {
+                        return '<span>'+m+'</span><br>';
+                });
+                else if(arguments.length == 2)
+                    foodMessage.append(function () {
+                        return '<span>&nbsp;'+m+' - '+point2_round(addAim.get(w))+'g&nbsp;</span><br>';
+                });
+                else if(arguments.length == 3)
+                    foodMessage.append(function () {
+                        return '<span>&nbsp;'+m+' - '+point2_round((addAim.get(w)*u))+'g&nbsp;</span><br>';
+                });
+            }
+
+            function updateNutrient(){
+                var p = 0;
+                for(var num in searchName){
+                    var name = searchName[num];
+                    wholeNut.set('Water' , wholeNut.get('Water') + point3_round(searchAim.get(name).nutrient.water * (searchWeight.get(name)/100)));
+                    wholeNut.set('Protein' , wholeNut.get('Protein') + point3_round(searchAim.get(name).nutrient.protein * (searchWeight.get(name)/100)));
+                    wholeNut.set('Fat' , wholeNut.get('Fat') + point3_round(searchAim.get(name).nutrient.fat * (searchWeight.get(name)/100)));
+                    wholeNut.set('Carbs' , wholeNut.get('Carbs') + point3_round(searchAim.get(name).nutrient.carbs * (searchWeight.get(name)/100)));
+                    wholeNut.set('Calories' , wholeNut.get('Calories') + point3_round(searchAim.get(name).nutrient.calories * (searchWeight.get(name)/100)));
+                    wholeNut.set('gotProtein', p + point3_round(searchAim.get(name).nutrient.protein * (searchWeight.get(name)/100) * getProteinDigestibility(searchAim.get(name))));
+                }
+                console.warn(wholeNut);
+                showNutrient(false,wholeNut.get('Water'),wholeNut.get('Protein'),wholeNut.get('Fat'),wholeNut.get('Carbs'),wholeNut.get('Calories'),data);
+
+            }
+
+            function showNutrient(ifClean,water,protein,fat,carbs,calories,d){
+                nutrientMessage.children().remove();
+                if(arguments.length == 1 && ifClean){
+                    editHTML(nutrientMessage,'<span>...</span><br>');
+                    nutrientMessage.find("span.right").unbind('click');
+                }else{
+                    var t1 = (d.time2+d.time3+d.time4+d.time5)/speed;
+                    var t2 = (d.time3+d.time4)/speed;
+                    var t3 = (d.time1+d.time3+d.time4)/speed;
+                    var t4 = (d.time1+d.time4)/speed;
+                    var t5 = (d.time3+d.time4)/speed;
+                    midValue = [0,0,0,0,0];
+
+                    editHTML(nutrientMessage,'<p>Your body got:</p>');
+                    editHTML(nutrientMessage,'<span class = "right">>></span>');
+                	editHTML(nutrientMessage,'<table class="table1">');
+                	editHTML($('table.table1'),'<tr class="roll1" name = "water">');
+                	editHTML($('tr.roll1'),'<td class="name">Water</td>');
+                	editHTML($('tr.roll1'),'<td class="weight"><span>'+midValue[0]+'</span>&nbsp;g</td>');
+                	editHTML($('table.table1'),'</tr>');
+
+                	editHTML($('table.table1'),'<tr class="roll2" name = "protein">');
+                	editHTML($('tr.roll2'),'<td class="name">Protein</td>');
+                	editHTML($('tr.roll2'),'<td class="weight"><span>'+midValue[1]+'</span>&nbsp;g</td>');
+                	editHTML($('table.table1'),'</tr>');
+
+                	editHTML($('table.table1'),'<tr class="roll3" name = "fat">');
+                	editHTML($('tr.roll3'),'<td class="name">Fat</td>');
+                	editHTML($('tr.roll3'),'<td class="weight"><span>'+midValue[2]+'</span>&nbsp;g</td>');
+                	editHTML($('table.table1'),'</tr>');
+
+                	editHTML($('table.table1'),'<tr class="roll4" name = "carbs">');
+                	editHTML($('tr.roll4'),'<td class="name">Carbs</td>');
+                	editHTML($('tr.roll4'),'<td class="weight"><span>'+midValue[3]+'</span>&nbsp;g</td>');
+                	editHTML($('table.table1'),'</tr>');
+
+                	editHTML($('table.table1'),'<tr class="roll5" name = "calories">');
+                	editHTML($('tr.roll5'),'<td class="name">Energy</td>');
+                	editHTML($('tr.roll5'),'<td class="weight"><span>'+midValue[4]+'</span>&nbsp;kcal</td>');
+                	editHTML($('table.table1'),'</tr>');
+                	editHTML(nutrientMessage,'</table>');
+
+                    editHTML(nutrientMessage,'<br><table class="table2"><th>Process:</th>');
+                    editHTML($('table.table2'),'<tr class="roll6">');
+                    editHTML($('tr.roll6'),'<td class="name" id="mouth">Oral Cavity</td>');
+                    editHTML($('tr.roll6'),'<td class="weight" id="ratio_1">Waiting...</td>');
+                    editHTML($('table.table2'),'</tr>');
+
+                    editHTML($('table.table2'),'<tr class="roll7">');
+                    editHTML($('tr.roll7'),'<td class="name" id="esophagus">Esophagus</td>');
+                    editHTML($('tr.roll7'),'<td class="weight" id="ratio_2">Waiting...</td>');
+                    editHTML($('table.table2'),'</tr>');
+
+                    editHTML($('table.table2'),'<tr class="roll8">');
+                    editHTML($('tr.roll8'),'<td class="name" id="stomach">Stomach</td>');
+                    editHTML($('tr.roll8'),'<td class="weight" id="ratio_3">Waiting...</td>');
+                    editHTML($('table.table2'),'</tr>');
+
+                    editHTML($('table.table2'),'<tr class="roll9">');
+                    editHTML($('tr.roll9'),'<td class="name" id="sIntestine">Small Intestine</td>');
+                    editHTML($('tr.roll9'),'<td class="weight" id="ratio_4">Waiting...</td>');
+                    editHTML($('table.table2'),'</tr>');
+
+                    editHTML($('table.table2'),'<tr class="roll10">');
+                    editHTML($('tr.roll10'),'<td class="name" id="lIntestine">Large Intestine</td>');
+                    editHTML($('tr.roll10'),'<td class="weight" id="ratio_5">Waiting...</td>');
+                    editHTML($('table.table2'),'</tr>');
+                    editHTML(nutrientMessage,'</table>');
+
+                	$('table').css('text-align','center');
+                	$('table').css('width','100%');
+                	$('table.table1 td.name').css('font-size','2.5em');
+                	$('td.name').css('font-weight','bolder');
+                	$('table.table1 td.name').css('font-family','"Times New Roman", Times, serif');
+                	$('td.weight').find('span').css('font-size','1.9em');
+
+                    $('table.table2').css('text-align','left');
+                    $('table.table2').css('opacity','.85');
+                    $('td[id^=ratio]').css('color','#FF6666');
+
+                    nutrientMessage.find("span.right").css({
+                        "position":"absolute",
+                        "right":"5px",
+                        "top":"5px",
+                        "font-size":"18px"
+                    });
+                    $("span.right").click(function(){
+                        ifShow = true;
+                    });
+
+                    elements = [$('tr.roll1').find('span'),$('tr.roll2').find('span'),$('tr.roll3').find('span'),$('tr.roll4').find('span'),$('tr.roll5').find('span')];
+                    changes = [wholeNut.get('Water')/t1,wholeNut.get('gotProtein')/t2,point2_round(wholeNut.get('Fat')*.95)/t3,wholeNut.get('Carbs')/t4,wholeNut.get('Calories')/t5];
+
+                    
+                }
+                
+            }
+
+            var elements = [];
+            var changes = [];
+            var midValue = [];
+            function updateIntake(){
+                var mid = 0;
+                    switch(processState){
+                        case 1:
+                        for(var o = 2 ; o <=3 ; o++){
+                            midValue[o] = midValue[o] + changes[o];
+                            mid = point3_round(midValue[o]);
+                            elements[o].text(correctPoint(mid));
+                        }
+                        break;
+                        case 2:
+                        midValue[0] = midValue[0] + changes[0];
+                        mid = point3_round(midValue[0]);
+                        elements[0].text(correctPoint(mid));
+                        break;
+                        case 3:
+                        for(var o = 0 ; o <=2 ; o++){
+                            midValue[o] = midValue[o] + changes[o];
+                            mid = point3_round(midValue[o]);
+                            elements[o].text(correctPoint(mid));
+                        }
+                        midValue[4] = midValue[4] + changes[4];
+                        mid = point3_round(midValue[4]);
+                        elements[4].text(correctPoint(mid));
+                        break;
+                        case 4:
+                        for(var o = 0 ; o <=4 ; o++){
+                            midValue[o] = midValue[o] + changes[o];
+                            mid = point3_round(midValue[o]);
+                            elements[o].text(correctPoint(mid));
+                        }
+                        break;
+                        default:
+                        midValue[0] = midValue[0] + changes[0];
+                        mid = point3_round(midValue[0]);
+                        elements[0].text(correctPoint(mid));
+                    } 
+                    if(processState == 5){
+                        elements[4].text(correctPoint(wholeNut.get('Calories')));
+                        elements[1].text(correctPoint(wholeNut.get('gotProtein')));
+                        elements[2].text(correctPoint(point2_round(wholeNut.get('Fat')*.95)));
+                        elements[3].text(correctPoint(wholeNut.get('Carbs')));
+                    }
+            }
+
+            function showRatio(ratio){
+                var ratio1 = $('td#ratio_1');
+                var ratio2 = $('td#ratio_2');
+                var ratio3 = $('td#ratio_3');
+                var ratio4 = $('td#ratio_4');
+                var ratio5 = $('td#ratio_5');
+                if(ratio == 100){
+                    switch(count('show')){
+                        case 0:
+                            count();
+                            ratio1.text('Finished');
+                            ratio1.css('color','#FF0033');
+                        break;
+                        case 1:
+                            count();
+                            ratio2.text('Finished');
+                            ratio2.css('color','#FF0033');
+                        break;
+                        case 2:
+                            count();
+                            ratio3.text('Finished');
+                            ratio3.css('color','#FF0033');
+                        break;
+                        case 3:
+                            count();
+                            ratio4.text('Finished');
+                            ratio4.css('color','#FF0033');
+                        break;
+                        case 4:
+                            count('clean');
+                            ratio5.text('Finished');
+                            ratio5.css('color','#FF0033');
+                        break;
+                        default:
+                            count('clean');
+                    }
+                }else{
+                    switch(count('show')){
+                        case 0:
+                            ratio1.text(ratio+'%');
+                            ratio1.css('color','#FF3300');
+                        break;
+                        case 1:
+                            ratio2.text(ratio+'%');
+                            ratio2.css('color','#FF3300');
+                        break;
+                        case 2:
+                            ratio3.text(ratio+'%');
+                            ratio3.css('color','#FF3300');
+                        break;
+                        case 3:
+                            ratio4.text(ratio+'%');
+                            ratio4.css('color','#FF3300');
+                        break;
+                        case 4:
+                            ratio5.text(ratio+'%');
+                            ratio5.css('color','#FF3300');
+                        break;
+                        default:
+                            ratio1.text('Waiting...');
+                            ratio2.text('Waiting...');
+                            ratio3.text('Waiting...');
+                            ratio4.text('Waiting...');
+                            ratio5.text('Waiting...');
+                    }
+                }
+            }
+
+            function editHTML(jQ,m){
+            	jQ.append(function(){
+            		return m;
+            	});
+            }
+
+            function ifShowHint(flag){
+                if(flag){
+                    foodMessage.css("opacity",".8");
+                    foodMessage.css("visibility","visible");
+                }else{
+                    foodMessage.css("opacity","0");
+                    foodMessage.css("visibility","hidden");
+                }
+            }
+
+            function showResults(order){
+                if(order == 'clean'){
+                    results.hide(800);
+                    
+                    $('span.advice').unbind('click');
+                }else if(arguments.length == 0){
+                    results.show(1200);
+                    editResults(wholeNut);
+                }
+            }
+
+            function editDiagram(order){
+                if(order == 'clean'){
+                    deleteChart(window.myDoughnut1);
+                    deleteChart(window.myDoughnut2);
+                    $('span.subtitle').css("visibility","hidden");
+                }else if(order == 'show'){
+                    holder1.css('visibility','visible');
+                    holder2.css('visibility','visible');
+                    var canvas1 = document.getElementById('canvas-area1').getContext("2d");
+                    var canvas2 = document.getElementById('canvas-area2').getContext("2d");
+                    canvas1.fillRect(0, 0, 20, 20);
+                    canvas2.fillRect(0, 0, 20, 20);
+                    window.myDoughnut1 = new Chart(canvas1).Doughnut(getChart(calculatePro(wholeNut)), {responsive : true});
+                    window.myDoughnut2 = new Chart(canvas2).Doughnut(getChart([standardRatio.get('Protein'),standardRatio.get('Fat'),standardRatio.get('Carbs')]), {responsive : true});
+                
+                    //title.text('in your food.');
+                    $('span#name1').text('Yours');
+                    $('span#name2').text('Standard');
+                    $('span.subtitle').css("visibility","visible");
+                }
+            }
+
+            function editResults(wholeNut){
+            	var analysis = [];
+                var next = 0;
+                var keyWords = ['Glycemic load','Macronutrient composition','Micro-nutrient density','Acid-base balance','Sodium-potassium ratio','Fiber content'];
+
+            	var report = results.find('span.report');
+            	var tips = results.find('span.tips');
+            	var title = results.find('h2.tips');
+                
+
+            	$(report[0]).html(space(4)+wholeNut.get('Water')+space(1)+'g Water');
+            	$(report[1]).html(space(4)+wholeNut.get('Protein')+space(1)+'g Protein');
+            	$(report[2]).html(space(4)+wholeNut.get('Fat')+space(1)+'g Fat');
+				$(report[3]).html(space(4)+wholeNut.get('Carbs')+space(1)+'g Carbs');
+				$(report[4]).html(space(4)+wholeNut.get('Calories')+space(1)+'kcal Energy');
+                
+                
+                //tips
+                $('span.advice').click(function(){
+                    results.after('<div id="detail"><span id="text1">Turn</span><span id="text2">🚪Quit</span><span id="text3">Keyword:</span><span id="text4"></span><span id="text5"></span><span id="text6">⏩</span><span id="text7">⏪</span></div>');
+                    var div = $('div#detail');
+                    var text = div.find('span');
+
+                    div.css({
+                    	"overflow":"auto",
+                        "background-color": "#fff2df",
+                        "border-radius": "15px",
+                        "width": "42%",
+                        "height": "70%",
+                        "position": "absolute",
+                        "left": "22%",
+                        "top": "15%",
+                        "z-index": "8",
+                        "padding": "15px 45px",
+                        "font-size": "18px",
+                        "font-family": "Courier",
+                        "border":"#e4c6d0 solid thick",
+                    });
+                    $(text[0]).css({
+                        "position": "absolute",
+                        "right": "46px",
+                        "top": "2.5%",
+                        "font-size": "23px",
+                        "color":"#99CCFF"
+                    });
+                    $(text[1]).css({
+                        "position": "absolute",
+                        "left": "1%",
+                        "top": "2%",
+                        "font-size": "23px",
+                        "color":"#99CCFF"
+                    });
+                    $(text[2]).css({
+                        "position": "absolute",
+                        "left": "1%",
+                        "top": "10%",
+                        "font-size": "30px",
+                        "color":"#161823"
+                    });
+                    $(text[3]).css({
+                        "position": "absolute",
+                        "left": "3%",
+                        "top": "19.5%",
+                        "font-size": "15px",
+                        "color":"#666666"
+                    });
+                    $(text[4]).css({
+                        "position": "absolute",
+                        "left": "1%",
+                        "top": "36%",
+                        "color":"#161823"
+                    });
+                    $(text[5]).css({
+                        "position": "absolute",
+                        "right": "13px",
+                        "top": "2%",
+                        "font-size": "23px",
+                        "color":"#99CCFF"
+                    });
+                    $(text[6]).css({
+                        "position": "absolute",
+                        "right": "110px",
+                        "top": "2%",
+                        "font-size": "23px",
+                        "color":"#99CCFF"
+                    });
+
+                    $(text[1]).click(function(){
+                        div.remove();
+                    });
+
+                    for(var num in searchName){
+                    	var name = searchName[num];
+                    		analysis[num] = checkBased(keyWords[0],searchAim.get(name));
+                    	}
+                    if(analysis.indexOf('diseases of insulin resistance')>-1)
+                        editAdvice(text,keyWords[0],0,searchAim.get(name),true);
+                    else
+                        editAdvice(text,keyWords[0],0,searchAim.get(name),false);
+
+                    $(text[5]).click(function(){
+                    	next++;
+                    	if(next >5)
+                    		next = 0;
+                    	switch(next){
+                    		case 0:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                        		if(analysis.indexOf('diseases of insulin resistance')>-1)
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 1:
+                    			analysis[0] = checkBased(keyWords[next],calculatePro(wholeNut));
+                                if(analysis[0].indexOf(';')> -1){
+                                    editAdvice(text,keyWords[next],next,searchAim.get(name),[parseInt(analysis[0].split(';')[0]),parseInt(analysis[0].split(';')[1])],calEnergyPro(calculatePro(wholeNut)));
+                                }else if(analysis[0].indexOf(':')> -1){
+                                    editAdvice(text,keyWords[next],next,searchAim.get(name),[parseInt(analysis[0].split(':')[0]),analysis[0].split(':')[1]],calEnergyPro(calculatePro(wholeNut)));
+                                }else if(analysis[0]=='none'){
+                                    editAdvice(text,keyWords[next],next,searchAim.get(name),[],calEnergyPro(calculatePro(wholeNut)));
+                                }
+                    		break;
+                    		case 2:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('deficiency diseases')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 3:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('net acid load')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 4:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('the inversion of ratio')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 5:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('low in fiber')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    	}
+                    });
+                    $(text[6]).click(function(){
+                    	next--;
+                    	if(next < 0)
+                    		next = 5;
+                    	switch(next){
+                    		case 0:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                        		if(analysis.indexOf('diseases of insulin resistance')>-1)
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 1:
+                    			analysis[0] = checkBased(keyWords[next],calculatePro(wholeNut));
+                                if(analysis[0].indexOf(';')> -1){
+                                    editAdvice(text,keyWords[next],next,searchAim.get(name),[parseInt(analysis[0].split(';')[0]),parseInt(analysis[0].split(';')[1])],calEnergyPro(calculatePro(wholeNut)));
+                                }else if(analysis[0].indexOf(':')> -1){
+                                    editAdvice(text,keyWords[next],next,searchAim.get(name),[parseInt(analysis[0].split(':')[0]),analysis[0].split(':')[1]],calEnergyPro(calculatePro(wholeNut)));
+                                }else if(analysis[0]=='none'){
+                                    editAdvice(text,keyWords[next],next,searchAim.get(name),[],calEnergyPro(calculatePro(wholeNut)));
+                                }
+                    		break;
+                    		case 2:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('deficiency diseases')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 3:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('net acid load')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 4:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('the inversion of ratio')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    		case 5:
+                    			for(var num in searchName){
+                    				var name = searchName[num];
+                    				analysis[num] = checkBased(keyWords[next],searchAim.get(name));
+                    			}
+                    			if(analysis.indexOf('low in fiber')>-1)
+                    				editAdvice(text,keyWords[next],next,searchAim.get(name),true);
+                        		else
+                        			editAdvice(text,keyWords[next],next,searchAim.get(name),false);
+                    		break;
+                    	}
+                    });
+                });
+
+
+            }
+
+            function editAdvice(html,keyword,num,food,flag,opt){
+                var macronutrients = ['protein','fat','carbohydrates'];
+                switch(num){
+                    case 0:
+                        $(html[2]).text((num+1)+'.'+keyword);
+                        $(html[3]).text('is introduced to assess blood glucose raising potential of a food based on both the quality and quantity of dietary carbohydrate.');
+                        if(flag)
+                            $(html[4]).html('Analysis: <br>&nbsp;In the intake of nutrients, glycemic load is <strong>higher</strong> than the average standard value by now.<br><br>Do you know?<br>Long term consumption of high glycemic load carbohydrates can adversely affect metabolism and health (may elicit a number of hormonal and physiologic changes that promote <strong>insulin resistance</strong>). In addition, <strong>milk, yogurt, and ice cream</strong> may bring about the insulin resistance underlying <strong>metabolic syndrome diseases</strong>.<br>Diseases of insulin resistance include: <strong>obesity, coronary heart disease, type 2 diabetes</strong>. <br>The metabolic syndrome may extend to other chronic illnesses and conditions that are widely prevalent in Western societies, including: <strong>myopia, acne, gout, polycystic ovary syndrome, epithelial cell cancers (breast, colon, and prostate) and male vertex balding</strong>.<br><br><strong>Advice</strong>: Eat less <strong>grain products</strong> , <strong>sugars</strong> and <strong>dairy food</strong> today to reduce the daily glycemic load value.');
+                        else
+                            $(html[4]).html('Analysis: <br>&nbsp;The glycemic load is <strong>lower</strong> than the maximum value in your nutrients intake.<br><br>Do you know?<br>&nbsp;Long term consumption of high glycemic load carbohydrates can adversely affect metabolism and health (may elicit a number of hormonal and physiologic changes that promote <strong>insulin resistance</strong>). In addition, <strong>milk, yogurt, and ice cream</strong> may bring about the insulin resistance underlying <strong>metabolic syndrome diseases</strong>.<br><br>Diseases of insulin resistance include: <strong>obesity, coronary heart disease, type 2 diabetes</strong>. <br>The metabolic syndrome may extend to other chronic illnesses and conditions that are widely prevalent in Western societies, including: <strong>myopia, acne, gout, polycystic ovary syndrome, epithelial cell cancers (breast, colon, and prostate) and male vertex balding</strong>.<br><br><strong>Advice</strong>: Keep your diet and consume more <strong>fruits</strong> and <strong>vegetables</strong>.');
+                    break;
+                    case 1:
+                        $(html[2]).text((num+1)+'.'+keyword);
+                        $(html[3]).text('In the present Western diet, the percentage of total food energy derived from the 3 major macronutrients is as follows: carbohydrate (51.8%), fat (32.8%), and protein (15.4%).');
+                        if(flag.length == 0){
+                            $(html[4]).html('Analysis: <br>&nbsp;In your diet:<br>&nbsp;&nbsp;<strong>Protein intake</strong>: '+'<strong>'+point2_round(opt[0]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Fat intake</strong>: '+'<strong>'+point2_round(opt[1]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Carbohydrates intake</strong>: '+'<strong>'+point2_round(opt[2]*100)+'</strong>'+'% of total energy.<br><br>Do you know?<br>&nbsp;Current advice for <strong>reducing the risk of cardiovascular disease and other chronic diseases</strong> is to limit <strong>fat intake</strong> to <strong>30%</strong>of total energy, to maintain <strong>protein</strong> at <strong>15%</strong> of total energy, and to increase complex <strong>carbohydrates</strong> to <strong>55–60%</strong> of total energy.<br><br><strong>Advice</strong>: Your macronutrient intake is balanced. Keep your diet^^.');
+                        }
+                        else if(flag.indexOf('more')> -1){
+                            $(html[4]).html('Analysis: <br>&nbsp;In your diet:<br>&nbsp;&nbsp;<strong>Protein intake</strong>: '+'<strong>'+point2_round(opt[0]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Fat intake</strong>: '+'<strong>'+point2_round(opt[1]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Carbohydrates intake</strong>: '+'<strong>'+point2_round(opt[2]*100)+'</strong>'+'% of total energy.<br><br>Do you know?<br>&nbsp;Current advice for <strong>reducing the risk of cardiovascular disease and other chronic diseases</strong> is to limit <strong>fat intake</strong> to <strong>30%</strong>of total energy, to maintain <strong>protein</strong> at <strong>15%</strong> of total energy, and to increase complex <strong>carbohydrates</strong> to <strong>55–60%</strong> of total energy.<br><br><strong>Advice</strong>: You should consume less '+macronutrients[flag[0]]+' in order to keep balanced macronutrient intake.');
+                        }
+                        else if(flag.indexOf('less')> -1){
+                            $(html[4]).html('Analysis: <br>&nbsp;In your diet:<br>&nbsp;&nbsp;<strong>Protein intake</strong>: '+'<strong>'+point2_round(opt[0]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Fat intake</strong>: '+'<strong>'+point2_round(opt[1]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Carbohydrates intake</strong>: '+'<strong>'+point2_round(opt[2]*100)+'</strong>'+'% of total energy.<br><br>Do you know?<br>&nbsp;Current advice for <strong>reducing the risk of cardiovascular disease and other chronic diseases</strong> is to limit <strong>fat intake</strong> to <strong>30%</strong>of total energy, to maintain <strong>protein</strong> at <strong>15%</strong> of total energy, and to increase complex <strong>carbohydrates</strong> to <strong>55–60%</strong> of total energy.<br><br><strong>Advice</strong>: You should consume more '+macronutrients[flag[0]]+' in order to keep balanced macronutrient intake.');
+                        }
+                        else{
+                            $(html[4]).html('Analysis: <br>&nbsp;In your diet:<br>&nbsp;&nbsp;<strong>Protein intake</strong>: '+'<strong>'+point2_round(opt[0]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Fat intake</strong>: '+'<strong>'+point2_round(opt[1]*100)+'</strong>'+'% of total energy;<br>&nbsp;&nbsp;<strong>Carbohydrates intake</strong>: '+'<strong>'+point2_round(opt[2]*100)+'</strong>'+'% of total energy.<br><br>Do you know?<br>&nbsp;Current advice for <strong>reducing the risk of cardiovascular disease and other chronic diseases</strong> is to limit <strong>fat intake</strong> to <strong>30%</strong>of total energy, to maintain <strong>protein</strong> at <strong>15%</strong> of total energy, and to increase complex <strong>carbohydrates</strong> to <strong>55–60%</strong> of total energy.<br><br><strong>Advice</strong>: You should consume less '+macronutrients[flag[0]]+' and more '+macronutrients[flag[1]]+' to keep balanced macronutrient intake.');
+                        }
+                    break;
+                    case 2:
+                        $(html[2]).text((num+1)+'.'+keyword);
+                        $(html[3]).text('There are 13 vitamins and minerals most frequently lacking in the Western diet, including Vitamin B-12, Vitamin B-3, Vitamin C, Calcium, Zinc, Magnesium, Iron, etc.');
+                        if(flag)
+                            $(html[4]).html('Analysis: <br>&nbsp;The intake value of vitamins and minerals is <strong>not enough</strong> to reach the standard value.<br><br>Do you know?<br>&nbsp;Because the micronutrient density of <strong>Whole grains, whole milk, nuts</strong> are quite <strong>low</strong>, displacement of <strong>fruit, vegetables, lean meats,</strong> and <strong>seafood</strong> by these 3 staple food groups lowers the individual micronutrient density in the diet.<br><br>The decline in dietary vitamin and mineral density consequences that not only promote <strong>the development of vitamin deficiency diseases</strong> but also <strong>numerous infectious and chronic diseases</strong>, e.g. Adequate dietary intake of <strong>folate</strong> and <strong>vitamin B-6</strong> can effectively reduce the probability of <strong>stroke</strong> and <strong>deep vein thrombosis</strong>.<br><br><strong>Advice</strong>: You need adequate intake of multi vitamins and minerals in diet. Eat more <strong>vegetables, seafood, lean meats and fruits</strong>.');
+                        else
+                            $(html[4]).html('Analysis: <br>&nbsp;You have consumed <strong>abundant vitamins and minerals</strong> in your diet.<br><br>Do you know?<br>&nbsp;The decline in dietary vitamin and mineral density consequences that not only promote <strong>the development of vitamin deficiency diseases</strong> but also <strong>numerous infectious and chronic diseases</strong>, e.g. Adequate dietary intake of <strong>folate</strong> and <strong>vitamin B-6</strong> can effectively reduce the probability of <strong>stroke</strong> and <strong>deep vein thrombosis</strong>.<br><br><strong>Advice</strong>: Keep your eating habits of consuming <strong>vegetables, seafood, lean meats</strong> and <strong>fruits</strong>. ');
+                    break;
+                    case 3:
+                        $(html[2]).text((num+1)+'.'+keyword);
+                        $(html[3]).text('After digestion, absorption, and metabolism, nearly all foods release either acid or bicarbonate (base) into the systemic circulation. The typical Western diet yields a net acid load estimated to be 50 mEq/d.');
+                        if(flag)
+                            $(html[4]).html('Analysis:<br>&nbsp;Your diet yields a <strong>net acid load</strong>.<br><br>Do you know?<br>&nbsp;<strong>Fish, meat, poultry, eggs, shellfish, cheese, milk, and cereal grains</strong> are net <strong>acid</strong> producing, whereas </strong>fresh fruit, vegetables, tubers, roots, and nuts</strong> are net <strong>base</strong> producing. <strong>Legumes</strong> yield near-zero mean acid values.<br>The net <strong>acid-load</strong> diet makes healthy adults sustain a chronic, low-grade pathogenic metabolic acidosis that worsens with age as <strong>kidney function declines</strong>.<br>On the other hand, the known health benefits of a net <strong>base-yielding</strong> diet include <strong>preventing</strong> and <strong>treating osteoporosis, age-related muscle wasting, calcium kidney stones, hypertension</strong> and <strong>exercise-induced asthma</strong> and <strong>slow the progression of age-</strong> and <strong>disease-related chronic renal insufficiency</strong>.<br><br><strong>Advice</strong>: Eat more <strong>basic food</strong> mentioned above.');
+                        else
+                            $(html[4]).html('Analysis:<br>&nbsp;You have consumed some net-base-producing food and kept acid-base balance.<br><br>Do you know?<br>&nbsp;Fish, meat, poultry, eggs, shellfish, cheese, milk, and cereal grains</strong> are net <strong>acid</strong> producing, whereas </strong>fresh fruit, vegetables, tubers, roots, and nuts</strong> are net <strong>base</strong> producing. <strong>Legumes</strong> yield near-zero mean acid values.<br>The net <strong>acid-load</strong> diet makes healthy adults sustain a chronic, low-grade pathogenic metabolic acidosis that worsens with age as <strong>kidney function declines</strong>.<br>On the other hand, the known health benefits of a net <strong>base-yielding</strong> diet include <strong>preventing</strong> and <strong>treating osteoporosis, age-related muscle wasting, calcium kidney stones, hypertension</strong> and <strong>exercise-induced asthma</strong> and <strong>slow the progression of age-</strong> and <strong>disease-related chronic renal insufficiency</strong>.<br><br><strong>Advice</strong>: Keep your diet.');
+                    break;
+                    case 4:
+                        $(html[2]).text((num+1)+'.'+keyword);
+                        $(html[3]).text('The average sodium content (3271mg/d) of the typical Western diet is substantially higher than its potassium content (2620 mg/d). Three dietary factors are primarily responsible for the dietary ratio of sodium to potassium, which is greater than 1.0.');
+                        if(flag)
+                            $(html[4]).html('Analysis:<br>&nbsp;Your <strong>potassium intake</strong> is insufficient.<br><br>Do you know?<br>&nbsp;①<strong>90%</strong> of the <strong>sodium</strong> in Western diets comes from manufactured salt (sodium chloride);②<strong>vegetable oils and refined sugars</strong>, which are essentially devoid of <strong>potassium</strong>, constitute <strong>36%</strong> of the total food energy;③the displacement of <strong>vegetables and fruit</strong> by <strong>whole grains and milk products</strong> may further reduce the <strong>potassium intake</strong>.<br><strong>Diets low in potassium and high in sodium</strong> may partially or directly underlie or exacerbate a variety of maladies and chronic illnesses, including <strong>hypertension, stroke, kidney stones, osteoporosis, gastrointestinal tract cancers, asthma, exercise-induced asthma, insomnia, air sickness, high-altitude sickness, and Meniere’s Syndrome (ear ringing)<strong>.<br><br><strong>Advice</strong>: You should consume more <strong>fruits and vegetables</strong> to keep the balance of sodium and potassium.');
+                        else
+                            $(html[4]).html('Analysis:<br>&nbsp;Your <strong>potassium intake</strong> is sufficient.<br><br>Do you know?<br>&nbsp;The displacement of <strong>vegetables and fruit</strong> by <strong>whole grains and milk products</strong> may further reduce the <strong>potassium intake</strong> because potassium concentrations in vegetables are 4 and 12 times those in milk and whole grains, respectively, whereas in fruit the potassium concentration is 2 and 5 times that in milk and whole grains.<br>Diets low in potassium and high in sodium</strong> may partially or directly underlie or exacerbate a variety of maladies and chronic illnesses, including <strong>hypertension, stroke, kidney stones, osteoporosis, gastrointestinal tract cancers, asthma, exercise-induced asthma, insomnia, air sickness, high-altitude sickness, and Meniere’s Syndrome (ear ringing)<strong>.<br><br><strong>Advice</strong>: Keep your diet^^');
+                    break;
+                    case 5:
+                        $(html[2]).text((num+1)+'.'+keyword);
+                        $(html[3]).text('The fiber content (15.1 g/d) (23) of the typical Western diet is considerably lower than recommended values (25–30g).');
+                        if(flag)
+                            $(html[4]).html('Analysis:<br>&nbsp;You do not consume sufficient <strong>fiber</strong> in your diet.<br><br>Do you know?<br>&nbsp;<strong>Refined sugars, vegetable oils, dairy products, and alcohol</strong> are devoid of fiber and constitute an average of 48.2% of the energy in the typical Western diet. <strong>Refined grains</strong> contain 400% less fiber than do <strong>whole grains</strong>. <strong>Fresh fruit</strong> typically contains twice the amount of fiber in whole grains, and <strong>no starchy vegetables</strong> contain almost 8 times the amount of fiber in whole grains on an energy basis.<br>Diets low in dietary fiber may underlie or exacerbate <strong>constipation, appendicitis, hemorrhoids, deep vein thrombosis, varicose veins, diverticulitis, hiatal hernia, and gastroesophageal reflux</strong>.<br><br><strong>Advice</strong>: Contemporary diets devoid of <strong>cereal grains, dairy products, refined oils, sugars</strong>, and <strong>processed foods</strong> have been shown to contain significantly more fiber (42.5 g/d) than either current or recommended values. Your body need this kind of diet.');
+                        else
+                            $(html[4]).html('Analysis:<br>&nbsp;You consume sufficient <strong>fiber</strong> in your diet!<br><br>Do you know?<br>&nbsp;<strong>Refined sugars, vegetable oils, dairy products, and alcohol</strong> are devoid of fiber and constitute an average of 48.2% of the energy in the typical Western diet. <strong>Refined grains</strong> contain 400% less fiber than do <strong>whole grains</strong>. <strong>Fresh fruit</strong> typically contains twice the amount of fiber in whole grains, and <strong>no starchy vegetables</strong> contain almost 8 times the amount of fiber in whole grains on an energy basis.<br>Diets low in dietary fiber may underlie or exacerbate <strong>constipation, appendicitis, hemorrhoids, deep vein thrombosis, varicose veins, diverticulitis, hiatal hernia, and gastroesophageal reflux</strong>.<br><br><strong>Advice</strong>: Keep your diet and eat more <strong>fresh fruit</strong> and <strong>no starchy vegetables</strong>.');
+                    break;
+                }
+            }
+        </script>
+    </body>
+</html>
